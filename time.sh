@@ -1,33 +1,47 @@
+# Pulls current rust and benchmarks it.
+
+TIMES_DIR=/home/ncameron/times
+BENCH_DIR=/home/ncameron/benchmarks
+SCRIPTS_DIR=/home/ncameron/times-scripts
+
 export DATE=$(date +%F_%H-%M-%S)
 START=$(pwd)
 
+echo "pulling master"
 git checkout master
 git pull upstream master
 
-export CC=clang-3.5
-export CXX=clang++-3.5
-export RUSTFLAGS_STAGE2=-Ztime-passes
+echo "building"
 
 ./configure
+make rustc-stage1 -j8
+
+export RUSTFLAGS_STAGE2=-Ztime-passes
 
 for i in 0 1 2
 do
-    git show HEAD -s >/home/ncameron/times/raw/rustc-$DATE-$i.log
-    touch src/librustc/middle/ty.rs
-    make >>/home/ncameron/times/raw/rustc-$DATE-$i.log
+    echo "building, round $i"
+    git show HEAD -s >$TIMES_DIR/raw/rustc--$DATE--$i.log
+    touch src/librustc_trans/trans/mod.rs
+    make >>$TIMES_DIR/raw/rustc--$DATE--$i.log
 done
 
-cd /home/ncameron/times
-python process.py rustc $DATE 3
+echo "processing data"
+cd $TIMES_DIR
+python $SCRIPTS_DIR/process.py rustc $DATE 3
 for i in 0 1 2
 do
-    git add raw/rustc-$DATE-$i.log
-    git add processed/rustc-$DATE-$i.json
+    git add raw/rustc--$DATE--$i.log
+    git add processed/rustc--$DATE--$i.json
 done
 
+echo "benchmarks"
 export RUSTC=$START/x86_64-unknown-linux-gnu/stage2/bin/rustc
 export LD_LIBRARY_PATH=$START/x86_64-unknown-linux-gnu/stage2/lib
-/home/ncameron/benchmarks/process.py
+cd $BENCH_DIR
+./process.sh
 
+echo "committing"
+cd $TIMES_DIR
 git commit -m "Added data for $DATE"
 git push origin master

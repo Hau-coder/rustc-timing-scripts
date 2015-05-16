@@ -4,18 +4,19 @@ import re
 import sys
 
 VERBOSE = False
+LL_RATIO = False
 
 re_commit = re.compile("commit (.*)")
 re_date = re.compile("Date:   (.*)")
-re_version = re.compile("rustc [0-9\.a-zA-Z\-]* \(([0-9a-zA-Z]*) ([0-9\-]*)\) ")
+re_version = re.compile("rustc [0-9\.a-zA-Z\-]* \(built ([0-9\-]*)")
 re_rustc = re.compile("rustc: .*/(\w*)")
 re_time = re.compile("( *)time: ([0-9\.]*)\s*(.*)")
 
 
 def process(label, arg, n):
     for i in range(0, n):
-        in_name = os.path.join('raw', '%s_%s_%s.log'%(label, arg, i))
-        out_name = os.path.join('processed', '%s_%s_%s.json'%(label, arg, i))
+        in_name = os.path.join('raw', '%s--%s--%s.log'%(label, arg, i))
+        out_name = os.path.join('processed', '%s--%s--%s.json'%(label, arg, i))
         if VERBOSE:
             print "input:", in_name
             print "output:", out_name
@@ -56,8 +57,8 @@ def mk_header(in_file):
 def mk_header_from_version(version_line):
     match = re_version.match(version_line)
     header = {}
-    header['commit'] = match.group(1)
-    header['date'] = match.group(2)
+    header['commit'] = "000000"
+    header['date'] = match.group(1)
 
     return header
 
@@ -98,7 +99,7 @@ def process_times(times):
     llvm = 0
     for (l, t) in times['times']:
         total += t
-        if l in ['translation', 'LLVM passes', 'linking']:
+        if LL_RATIO and l in ['translation', 'LLVM passes', 'linking']:
             llvm += t
 
     times['total'] = total
@@ -107,9 +108,11 @@ def process_times(times):
     for (l, t) in times['times']:
         time = {
             'time': t,
-            'percent': (t/total)*100,
-            'ratio_llvm': (t/llvm)
+            'percent': (t/total)*100
         }
+        if LL_RATIO:
+            time['ratio_llvm'] = (t/llvm)
+
         new_times[l] = time
 
     times['times'] = new_times
