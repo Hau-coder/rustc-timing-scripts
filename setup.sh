@@ -2,6 +2,7 @@
 
 # install prereqs
 apt-get install git
+apt-get install libssl-dev
 # TODO there were other prereqs
 
 # install Rust and Cargo

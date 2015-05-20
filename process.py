@@ -8,7 +8,6 @@ LL_RATIO = False
 
 re_commit = re.compile("commit (.*)")
 re_date = re.compile("Date:   (.*)")
-re_version = re.compile("rustc [0-9\.a-zA-Z\-]* \(built ([0-9\-]*)")
 re_rustc = re.compile("rustc: .*/(\w*)")
 re_time = re.compile("( *)time: ([0-9\.]*)\s*(.*)")
 
@@ -38,8 +37,6 @@ def process_file(in_file, out_file):
 
 def mk_header(in_file):
     commit_line = in_file.readline()
-    if commit_line.startswith('rustc'):
-        return mk_header_from_version(commit_line)
 
     # skip merge and author lines
     author_line = in_file.readline()
@@ -50,15 +47,6 @@ def mk_header(in_file):
     header = {}
     header['commit'] = re_commit.match(commit_line).group(1)
     header['date'] = re_date.match(date_line).group(1)
-
-    return header
-
-
-def mk_header_from_version(version_line):
-    match = re_version.match(version_line)
-    header = {}
-    header['commit'] = "000000"
-    header['date'] = match.group(1)
 
     return header
 
