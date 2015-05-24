@@ -1,13 +1,14 @@
+#!/bin/bash
 # Pulls current rust and benchmarks it.
 
 TIMES_DIR=/home/ncameron/times
 BENCH_DIR=/home/ncameron/benchmarks
 SCRIPTS_DIR=/home/ncameron/times-scripts
 
-export DATE=$(date +%F_%H-%M-%S)
+export DATE=$(date +%F-%H-%M-%S)
 START=$(pwd)
 
-echo "pulling master"
+echo "pulling master ($DATE)"
 git checkout master
 git pull upstream master
 
@@ -32,16 +33,17 @@ python $SCRIPTS_DIR/process.py rustc $DATE 3
 for i in 0 1 2
 do
     git add raw/rustc--$DATE--$i.log
-    git add processed/rustc--$DATE--$i.json
 done
+git add processed/rustc--$DATE.json
 
 echo "benchmarks"
-export RUSTC=$START/x86_64-unknown-linux-gnu/stage2/bin/rustc
-export LD_LIBRARY_PATH=$START/x86_64-unknown-linux-gnu/stage2/lib
+export RUSTC_DIR=$START/x86_64-unknown-linux-gnu/stage2
+export RUSTC=$RUSTC_DIR/bin/rustc
+export LD_LIBRARY_PATH=$RUSTC_DIR/lib
 cd $BENCH_DIR
 ./process.sh
 
 echo "committing"
 cd $TIMES_DIR
 git commit -m "Added data for $DATE"
-git push origin master
+git push upstream master
