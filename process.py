@@ -9,6 +9,7 @@ LL_RATIO = False
 re_commit = re.compile("commit (.*)")
 re_date = re.compile("Date:   (.*)")
 re_rustc = re.compile("rustc: .*/([\w\-_\.]*)")
+re_time_and_mem = re.compile("( *)time: ([0-9\.]*); rss: ([0-9]*)MB\s*(.*)")
 re_time = re.compile("( *)time: ([0-9\.]*)\s*(.*)")
 
 
@@ -62,19 +63,38 @@ def mk_times(in_file):
     last_file = None
     cur_times = None
     for line in in_file:
-        time_match = re_time.match(line)
-        if time_match:
+        time_and_mem_match = re_time_and_mem.match(line)
+        if time_and_mem_match:
             assert(last_file)
             if not cur_times:
                 cur_times = {}
                 cur_times['crate'] = last_file
                 cur_times['times'] = []
-            indent = time_match.group(1)
-            time = time_match.group(2)
-            label = time_match.group(3)
+                cur_times['rss'] = []
+            indent = time_and_mem_match.group(1)
             # TODO do something with 'sub-times'
             if not indent:
+                time = time_and_mem_match.group(2)
+                mem = time_and_mem_match.group(3)
+                label = time_and_mem_match.group(4)
                 cur_times['times'].append((label, float(time)))
+                cur_times['rss'].append((label, int(mem)))
+        else:
+            time_match = re_time.match(line)
+            if time_match:
+                assert(last_file)
+                if not cur_times:
+                    cur_times = {}
+                    cur_times['crate'] = last_file
+                    cur_times['times'] = []
+                    cur_times['rss'] = []
+                indent = time_match.group(1)
+                # TODO do something with 'sub-times'
+                if not indent:
+                    time = time_match.group(2)
+                    label = time_match.group(3)
+                    cur_times['times'].append((label, float(time)))
+                    cur_times['rss'].append((label, int(0)))
         elif cur_times:
             all_times.append(cur_times)
             cur_times = None
