@@ -95,10 +95,10 @@ def mk_times(in_file):
                     label = time_match.group(3)
                     cur_times['times'].append((label, float(time)))
                     cur_times['rss'].append((label, int(0)))
-        elif cur_times:
-            all_times.append(cur_times)
-            cur_times = None
-            last_file = None
+            elif cur_times:
+                all_times.append(cur_times)
+                cur_times = None
+                last_file = None
 
         rustc_match = re_rustc.match(line)
         if rustc_match:
