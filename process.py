@@ -120,8 +120,9 @@ def merge_times(times):
         cur = {}
         cur['crate'] = c['crate']
         cur['times'] = []
-        for i in range(len(c['times'])):
-            cur['times'].append((c['times'][i][0], average(times, lambda t: t[ci]['times'][i][1])))
+        cur['rss'] = []
+        for i in range(len(c['rss'])):
+            cur['rss'].append((c['rss'][i][0], average(times, lambda t: t[ci]['rss'][i][1])))
         crates.append(cur)
 
     return crates
