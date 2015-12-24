@@ -12,6 +12,10 @@ re_rustc = re.compile("rustc: .*/([\w\-_\.]*)")
 re_time_and_mem = re.compile("( *)time: ([0-9\.]*); rss: ([0-9]*)MB\s*(.*)")
 re_time = re.compile("( *)time: ([0-9\.]*)\s*(.*)")
 
+re_loc =     re.compile("Lines of code:             ([0-9]*)")
+re_pre_nc =  re.compile("Pre-expansion node count:  ([0-9]*)")
+re_post_nc = re.compile("Post-expansion node count: ([0-9]*)")
+
 
 def process(label, arg, n):
     in_files = []
@@ -62,6 +66,9 @@ def mk_times(in_file):
     # The last mentioned crate being compiled.
     last_file = None
     cur_times = None
+    loc = None
+    pre_nc = None
+    post_nc = None
     for line in in_file:
         time_and_mem_match = re_time_and_mem.match(line)
         if time_and_mem_match:
@@ -69,6 +76,10 @@ def mk_times(in_file):
             if not cur_times:
                 cur_times = {}
                 cur_times['crate'] = last_file
+                if loc:
+                    cur_times['loc'] = int(loc)
+                    cur_times['pre_nc'] = int(pre_nc)
+                    cur_times['post_nc'] = int(post_nc)
                 cur_times['times'] = []
                 cur_times['rss'] = []
             indent = time_and_mem_match.group(1)
@@ -86,6 +97,10 @@ def mk_times(in_file):
                 if not cur_times:
                     cur_times = {}
                     cur_times['crate'] = last_file
+                    if loc:
+                        cur_times['loc'] = int(loc)
+                        cur_times['pre_nc'] = int(pre_nc)
+                        cur_times['post_nc'] = int(post_nc)
                     cur_times['times'] = []
                     cur_times['rss'] = []
                 indent = time_match.group(1)
@@ -99,6 +114,21 @@ def mk_times(in_file):
                 all_times.append(cur_times)
                 cur_times = None
                 last_file = None
+                loc = None
+                pre_nc = None
+                post_nc = None
+
+        loc_match = re_loc.match(line)
+        if loc_match:
+            loc = loc_match.group(1)
+
+        loc_match = re_pre_nc.match(line)
+        if loc_match:
+            pre_nc = loc_match.group(1)
+
+        loc_match = re_post_nc.match(line)
+        if loc_match:
+            post_nc = loc_match.group(1)
 
         rustc_match = re_rustc.match(line)
         if rustc_match:
@@ -119,6 +149,14 @@ def merge_times(times):
         c = times[0][ci]
         cur = {}
         cur['crate'] = c['crate']
+        if 'loc' in c:
+            cur['loc'] = c['loc']
+            cur['pre_nc'] = c['pre_nc']
+            cur['post_nc'] = c['post_nc']
+        else:
+            cur['loc'] = 0
+            cur['pre_nc'] = 0
+            cur['post_nc'] = 0
         cur['times'] = []
         for i in range(len(c['times'])):
             cur['times'].append((c['times'][i][0], average(times, lambda t: t[ci]['times'][i][1])))
