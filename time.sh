@@ -27,7 +27,7 @@ echo "building"
 ./configure
 make rustc-stage1 -j8
 
-export RUSTFLAGS_STAGE2=-Ztime-passes
+export RUSTFLAGS_STAGE2='-Ztime-passes -Zinput-stats'
 
 for i in 0 1 2
 do
