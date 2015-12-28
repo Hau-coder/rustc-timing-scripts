@@ -13,8 +13,8 @@ re_time_and_mem = re.compile("( *)time: ([0-9\.]*); rss: ([0-9]*)MB\s*(.*)")
 re_time = re.compile("( *)time: ([0-9\.]*)\s*(.*)")
 
 re_loc =     re.compile("Lines of code:             ([0-9]*)")
-re_pre_nc =  re.compile("Pre-expansion node count:  ([0-9]*)")
-re_post_nc = re.compile("Post-expansion node count: ([0-9]*)")
+re_pre_nc =  re.compile("Pre\-expansion node count:  ([0-9]*)")
+re_post_nc = re.compile("Post\-expansion node count: ([0-9]*)")
 
 
 def process(label, arg, n):
@@ -76,10 +76,6 @@ def mk_times(in_file):
             if not cur_times:
                 cur_times = {}
                 cur_times['crate'] = last_file
-                if loc:
-                    cur_times['loc'] = int(loc)
-                    cur_times['pre_nc'] = int(pre_nc)
-                    cur_times['post_nc'] = int(post_nc)
                 cur_times['times'] = []
                 cur_times['rss'] = []
             indent = time_and_mem_match.group(1)
@@ -97,10 +93,6 @@ def mk_times(in_file):
                 if not cur_times:
                     cur_times = {}
                     cur_times['crate'] = last_file
-                    if loc:
-                        cur_times['loc'] = int(loc)
-                        cur_times['pre_nc'] = int(pre_nc)
-                        cur_times['post_nc'] = int(post_nc)
                     cur_times['times'] = []
                     cur_times['rss'] = []
                 indent = time_match.group(1)
@@ -110,25 +102,31 @@ def mk_times(in_file):
                     label = time_match.group(3)
                     cur_times['times'].append((label, float(time)))
                     cur_times['rss'].append((label, int(0)))
-            elif cur_times:
-                all_times.append(cur_times)
-                cur_times = None
-                last_file = None
-                loc = None
-                pre_nc = None
-                post_nc = None
+            else:
+                loc_match = re_loc.match(line)
+                pre_nc_match = re_pre_nc.match(line)
+                post_nc_match = re_post_nc.match(line)
+                if loc_match:
+                    loc = loc_match.group(1)
 
-        loc_match = re_loc.match(line)
-        if loc_match:
-            loc = loc_match.group(1)
+                elif pre_nc_match:
+                    pre_nc = pre_nc_match.group(1)
 
-        loc_match = re_pre_nc.match(line)
-        if loc_match:
-            pre_nc = loc_match.group(1)
+                elif post_nc_match:
+                    post_nc = post_nc_match.group(1)
 
-        loc_match = re_post_nc.match(line)
-        if loc_match:
-            post_nc = loc_match.group(1)
+                elif cur_times:
+                    if loc:
+                        cur_times['loc'] = int(loc)
+                        cur_times['pre_nc'] = int(pre_nc)
+                        cur_times['post_nc'] = int(post_nc)
+                    all_times.append(cur_times)
+                    cur_times = None
+                    last_file = None
+                    loc = None
+                    pre_nc = None
+                    post_nc = None
+
 
         rustc_match = re_rustc.match(line)
         if rustc_match:
