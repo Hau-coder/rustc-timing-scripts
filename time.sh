@@ -25,7 +25,7 @@ done
 echo "building"
 
 ./configure
-make rustc-stage1 -j8
+make -j8
 
 export RUSTFLAGS_STAGE2='-Ztime-passes -Zinput-stats'
 
@@ -33,7 +33,7 @@ for i in 0 1 2
 do
     echo "building, round $i"
     git show HEAD -s >$TIMES_DIR/raw/rustc--$DATE--$i.log
-    touch src/librustc_trans/trans/mod.rs
+    touch src/librustc_trans/lib.rs
     make >>$TIMES_DIR/raw/rustc--$DATE--$i.log
 done
 
