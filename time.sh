@@ -37,12 +37,24 @@ do
     make >>$TIMES_DIR/raw/rustc--$DATE--$i.log
 done
 
+# Collect data using MIR trans
+export RUSTFLAGS_STAGE2='-Ztime-passes -Zinput-stats -Zorbit'
+
+for i in 0 1 2
+do
+    echo "building, round $i"
+    git show HEAD -s >$TIMES_DIR/raw/orbit-rustc--$DATE--$i.log
+    touch src/librustc_trans/lib.rs
+    make >>$TIMES_DIR/raw/orbit-rustc--$DATE--$i.log
+done
+
 echo "processing data"
 cd $TIMES_DIR
 python $SCRIPTS_DIR/process.py rustc $DATE 3
 for i in 0 1 2
 do
     git add raw/rustc--$DATE--$i.log
+    git add raw/orbit-rustc--$DATE--$i.log
 done
 git add processed/rustc--$DATE.json
 
