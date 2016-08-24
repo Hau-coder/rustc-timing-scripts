@@ -1,13 +1,6 @@
 #!/bin/bash
 # Pulls current rust and benchmarks it.
 
-TIMES_DIR=/home/ncameron/times
-BENCH_DIR=/home/ncameron/benchmarks
-SCRIPTS_DIR=/home/ncameron/times-scripts
-
-export DATE=$(date +%F-%H-%M-%S)
-START=$(pwd)
-
 echo "pulling master ($DATE)"
 git checkout master
 git pull upstream master
@@ -20,52 +13,8 @@ do
     echo "sleeping"
     sleep 1h
     git pull upstream master
+    git log -1 --format="%H" >nrc.stamp
 done
 
-echo "building"
-
-./configure
-make -j8
-
-export RUSTFLAGS_STAGE2='-Ztime-passes -Zinput-stats'
-
-for i in 0 1 2
-do
-    echo "building, round $i"
-    git show HEAD -s >$TIMES_DIR/raw/rustc--$DATE--$i.log
-    touch src/librustc_trans/lib.rs
-    make >>$TIMES_DIR/raw/rustc--$DATE--$i.log
-done
-
-# Collect data using MIR trans
-export RUSTFLAGS_STAGE2='-Ztime-passes -Zinput-stats -Zorbit'
-
-for i in 0 1 2
-do
-    echo "building, round $i"
-    git show HEAD -s >$TIMES_DIR/raw/orbit-rustc--$DATE--$i.log
-    touch src/librustc_trans/lib.rs
-    make >>$TIMES_DIR/raw/orbit-rustc--$DATE--$i.log
-done
-
-echo "processing data"
-cd $TIMES_DIR
-python $SCRIPTS_DIR/process.py rustc $DATE 3
-for i in 0 1 2
-do
-    git add raw/rustc--$DATE--$i.log
-    git add raw/orbit-rustc--$DATE--$i.log
-done
-git add processed/rustc--$DATE.json
-
-echo "benchmarks"
-export RUSTC_DIR=$START/x86_64-unknown-linux-gnu/stage2
-export RUSTC=$RUSTC_DIR/bin/rustc
-export LD_LIBRARY_PATH=$RUSTC_DIR/lib
-cd $BENCH_DIR
-./process.sh
-
-echo "committing"
-cd $TIMES_DIR
-git commit -m "Added data for $DATE"
-git push upstream master
+export DATE=$(date +%F-%H-%M-%S)
+./run_bench.sh
