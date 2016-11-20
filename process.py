@@ -11,6 +11,8 @@ re_date = re.compile("Date:   (.*)")
 re_rustc = re.compile("rustc: .*/([\w\-_\.]*)")
 re_time_and_mem = re.compile("( *)time: ([0-9\.]*); rss: ([0-9]*)MB\s*(.*)")
 re_time = re.compile("( *)time: ([0-9\.]*)\s*(.*)")
+re_incremental_reuse = re.compile(" *incremental: re-using (\d+) out of (\d+) modules")
+re_incremental_dirty = re.compile(" *module .* is dirty because .* changed or was removed")
 
 re_loc =     re.compile("Lines of code:             ([0-9]*)")
 re_pre_nc =  re.compile("Pre\-expansion node count:  ([0-9]*)")
@@ -103,29 +105,35 @@ def mk_times(in_file):
                     cur_times['times'].append((label, float(time)))
                     cur_times['rss'].append((label, int(0)))
             else:
-                loc_match = re_loc.match(line)
-                pre_nc_match = re_pre_nc.match(line)
-                post_nc_match = re_post_nc.match(line)
-                if loc_match:
-                    loc = loc_match.group(1)
+                incremental_reuse_match = re_incremental_reuse.match(line)
+                incremental_dirty_match = re_incremental_dirty.match(line)
+                if incremental_reuse_match or incremental_dirty_match:
+                    # FIXME -- might be useful to plot the reuse data somewhere
+                    pass
+                else:
+                    loc_match = re_loc.match(line)
+                    pre_nc_match = re_pre_nc.match(line)
+                    post_nc_match = re_post_nc.match(line)
+                    if loc_match:
+                        loc = loc_match.group(1)
 
-                elif pre_nc_match:
-                    pre_nc = pre_nc_match.group(1)
+                    elif pre_nc_match:
+                        pre_nc = pre_nc_match.group(1)
 
-                elif post_nc_match:
-                    post_nc = post_nc_match.group(1)
+                    elif post_nc_match:
+                        post_nc = post_nc_match.group(1)
 
-                elif cur_times:
-                    if loc:
-                        cur_times['loc'] = int(loc)
-                        cur_times['pre_nc'] = int(pre_nc)
-                        cur_times['post_nc'] = int(post_nc)
-                    all_times.append(cur_times)
-                    cur_times = None
-                    last_file = None
-                    loc = None
-                    pre_nc = None
-                    post_nc = None
+                    elif cur_times:
+                        if loc:
+                            cur_times['loc'] = int(loc)
+                            cur_times['pre_nc'] = int(pre_nc)
+                            cur_times['post_nc'] = int(post_nc)
+                        all_times.append(cur_times)
+                        cur_times = None
+                        last_file = None
+                        loc = None
+                        pre_nc = None
+                        post_nc = None
 
 
         rustc_match = re_rustc.match(line)
@@ -139,7 +147,8 @@ def merge_times(times):
     for t in times:
         t.sort(key=lambda t: t['crate'])
         if len(t) != len(times[0]):
-            print "Inconsistent data"
+            print "Inconsistent data: len(t)=%s len(times[0])=%s" % (
+                len(t), len(times[0]))
             return
 
     crates = []
